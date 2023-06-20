@@ -4,14 +4,14 @@ This is a project for CAU AIR Lab. Similar to Kaggle.
 
 ## Requirements
 
-Mysql
-Python (Flask)
+Mysql  
+Python (Flask)  
 Pytorch (Optional)
 
 ## Initialization
 
-Change name "auth_temp.dat" file to "auth.dat"
-Fill configuration
+Change name "auth_temp.dat" file to "auth.dat"  
+Fill configuration  
 Turn on Mysql and make db file
 
 ```sql
