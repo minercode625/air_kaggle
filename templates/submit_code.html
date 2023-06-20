@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Code Submission</title>
+</head>
+
+<body>
+  <h1>Code Submission</h1>
+  <form action="/submit_code" method="post" enctype="multipart/form-data">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required /><br /><br />
+
+    <label for="code">Model Code:</label><br />
+    <textarea id="code" name="code" rows="10" cols="50" required></textarea><br /><br />
+
+    <label for="model_file">Model File (.pth):</label>
+    <input type="file" id="model_file" name="model_file" required /><br /><br />
+
+    <input type="submit" value="Submit" />
+  </form>
+</body>
+
+</html>
