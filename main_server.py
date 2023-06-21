@@ -1,17 +1,13 @@
 from flask import Flask, render_template, request, session, redirect
 from flask_mysqldb import MySQL
+import os
+from train_main import train_main
 
 app = Flask(__name__)
 mysql = None
 
 
 def init_app(app, dat_name):
-    # Init from dat file
-    # dat file config:
-    # host: localhost
-    # user: root
-    # password: password
-    # db: db_name
     host = ""
     user = ""
     password = ""
@@ -50,21 +46,28 @@ def signup():
     password = request.form["password"]
 
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM users WHERE username = %s", (username,))
-    existing_user = cur.fetchone()
-    if existing_user:
-        cur.close()
-        return render_template(
-            "login.html",
-            error_message="Username already exists. Please choose a different username.",
-        )
+    cur.execute("START TRANSACTION")
+    try:
+        cur.execute("SELECT * FROM users WHERE username = %s FOR UPDATE", (username,))
+        existing_user = cur.fetchone()
+        if existing_user:
+            cur.execute("ROLLBACK")
+            cur.close()
+            return render_template(
+                "login.html",
+                error_message="Username already exists. Please choose a different username.",
+            )
 
-    cur.execute(
-        "INSERT INTO users (name, username, password) VALUES (%s, %s, %s)",
-        (name, username, password),
-    )
-    mysql.connection.commit()
-    cur.close()
+        cur.execute(
+            "INSERT INTO users (name, username, password) VALUES (%s, %s, %s)",
+            (name, username, password),
+        )
+        cur.execute("COMMIT")
+    except Exception as e:
+        cur.execute("ROLLBACK")
+        print(str(e))
+    finally:
+        cur.close()
 
     return redirect("/")
 
@@ -80,22 +83,67 @@ def signin():
 
     if user and user[3] == password:
         session["user_id"] = user[0]
-        return redirect("/submit_code")
+        session["username"] = user[1]
+        # get folder name in data forlder
+        dir_list = os.listdir("data")
+        # check if dir_list has a entry name ".DS_Store"
+        if ".DS_Store" in dir_list:
+            dir_list.remove(".DS_Store")
+
+        return render_template(
+            "submit_code.html", user_name=session["username"], datasets=dir_list
+        )
     else:
         error_message = "Invalid username or password"
         return render_template("login.html", error_message=error_message)
 
 
-@app.route("/submit_code")
+@app.route("/submit_code", methods=["POST"])
 def submit_code():
-    if "user_id" in session:
-        return render_template("submit_code.html")
+    model_code = request.form["modelcode"]
+    precode = request.form["precode"]
+    data_name = request.form["dataset"]
+    temp_user_name = session["username"]
+    user_name = os.path.join("users", temp_user_name)
+    # Check directory "user_name" exists
+    # If not, create directory "user_name"
+    if not os.path.exists(user_name):
+        os.makedirs(user_name)
+    # Write model_code to file "user_name/model.py"
+    if os.path.exists(user_name + "/model.py"):
+        os.remove(user_name + "/model.py")
+    with open(user_name + "/model.py", "w") as f:
+        f.write(model_code)
+    # Write precode to file "user_name/precode.py"
+    if precode != "":
+        if os.path.exists(user_name + "/precode.py"):
+            os.remove(user_name + "/precode.py")
+        with open(user_name + "/precode.py", "w") as f:
+            f.write(precode)
     else:
-        return redirect("/")
+        if os.path.exists(user_name + "/precode.py"):
+            os.remove(user_name + "/precode.py")
+
+    # Run train_main.py
+    acc = 0
+    if precode == "":
+        acc = train_main(model_path=user_name + "/model.py", data_name=data_name)
+    else:
+        acc = train_main(
+            model_path=user_name + "/model.py",
+            preproc_path=user_name + "/precode.py",
+            data_name=data_name,
+        )
+
+    print(acc)
 
 
 if __name__ == "__main__":
+    if not os.path.exists("users"):
+        os.makedirs("users")
+
     app.secret_key = "super secret key"
     app.config["SESSION_TYPE"] = "filesystem"
     app, mysql = init_app(app, "auth.dat")
     app.run()
+

@@ -3,19 +3,53 @@
 
 <head>
   <title>Code Submission</title>
+  <script>
+    function handleTab(event) {
+      if (event.keyCode === 9) {
+        // Tab was pressed
+        // get caret position/selection
+        var start = this.selectionStart;
+        var end = this.selectionEnd;
+
+        var value = this.value;
+
+        // set textarea value to: text before caret + tab + text after caret
+        this.value = value.substring(0, start) + "\t" + value.substring(end);
+
+        // put caret at right position again (add one for the tab)
+        this.selectionStart = this.selectionEnd = start + 1;
+
+        // prevent the focus lose
+        event.preventDefault();
+      }
+    }
+
+    window.onload = function () {
+      var textareas = document.getElementsByTagName("textarea");
+      for (var i = 0; i < textareas.length; i++) {
+        textareas[i].addEventListener("keydown", handleTab);
+      }
+    };
+  </script>
 </head>
 
 <body>
   <h1>Code Submission</h1>
   <form action="/submit_code" method="post" enctype="multipart/form-data">
     <label for="name">Name:</label>
-    <input type="text" id="name" name="name" required /><br /><br />
+    <input type="text" id="name" name="name" value="{{ user_name }}" required /><br />
 
-    <label for="code">Model Code:</label><br />
-    <textarea id="code" name="code" rows="10" cols="50" required></textarea><br /><br />
+    <label for="dataset">Dataset:</label><br />
+    <select id="dataset" name="dataset" required>
+      {% for dataset in datasets %}
+      <option value="{{ dataset }}">{{ dataset }}</option>
+      {% endfor %}
+    </select><br /><br />
+    <label for="modelcode">Model Code:</label><br />
+    <textarea id="code" name="modelcode" rows="30" cols="90" required></textarea><br /><br />
 
-    <label for="model_file">Model File (.pth):</label>
-    <input type="file" id="model_file" name="model_file" required /><br /><br />
+    <label for="precode">Preprocessing Code:</label><br />
+    <textarea id="code2" name="precode" rows="30" cols="90"></textarea><br /><br />
 
     <input type="submit" value="Submit" />
   </form>
