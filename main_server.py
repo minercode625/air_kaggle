@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, redirect
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
+mysql = None
 
 
 def init_app(app, dat_name):
@@ -11,6 +12,10 @@ def init_app(app, dat_name):
     # user: root
     # password: password
     # db: db_name
+    host = ""
+    user = ""
+    password = ""
+    db = ""
     with open(dat_name, "r") as f:
         for line in f:
             if line.startswith("host"):
@@ -90,5 +95,7 @@ def submit_code():
 
 
 if __name__ == "__main__":
-    init_app(app, "auth.dat")
+    app.secret_key = "super secret key"
+    app.config["SESSION_TYPE"] = "filesystem"
+    app, mysql = init_app(app, "auth.dat")
     app.run()
