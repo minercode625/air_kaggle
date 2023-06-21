@@ -1,2 +1,3 @@
 auth.dat
 .DS*
+__pycache__*

@@ -3,27 +3,42 @@
 
 <head>
   <title>Login</title>
+  <style>
+    .form-box {
+      border: 2px solid #000;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 
 <body>
   <h1>Login</h1>
-  <form action="/signup" method="post">
-    <label for="name">Name:</label>
-    <input type="text" id="name" name="name" required /><br /><br />
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required /><br /><br />
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required /><br /><br />
-    <input type="submit" value="Sign Up" />
-  </form>
-  <br />
-  <form action="/signin" method="post">
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required /><br /><br />
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required /><br /><br />
-    <input type="submit" value="Sign In" />
-  </form>
+  <div class="form-box">
+    <h2>Sign Up</h2>
+    <form action="/signup" method="post">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required /><br /><br />
+      <label for="username">Username:</label>
+      <input type="text" id="username1" name="username" required /><br /><br />
+      <label for="password">Password:</label>
+      <input type="password" id="password1" name="password" required /><br /><br />
+      <input type="submit" value="Sign Up" />
+    </form>
+  </div>
+
+  <div class="form-box">
+    <h2>Sign In</h2>
+    <form action="/signin" method="post">
+      <label for="username">Username:</label>
+      <input type="text" id="username2" name="username" required /><br /><br />
+      <label for="password">Password:</label>
+      <input type="password" id="password2" name="password" required /><br /><br />
+      <input type="submit" value="Sign In" />
+    </form>
+  </div>
+
   {% if error_message %}
   <p>{{ error_message }}</p>
   {% endif %}
