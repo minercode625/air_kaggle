@@ -5,6 +5,7 @@ from train_main import train_main
 
 app = Flask(__name__)
 mysql = None
+user_dir = "users"
 
 
 def init_app(app, dat_name):
@@ -103,27 +104,23 @@ def submit_code():
     model_code = request.form["modelcode"]
     precode = request.form["precode"]
     data_name = request.form["dataset"]
-    temp_user_name = session["username"]
-    user_name = os.path.join("users", temp_user_name)
+    user_name = session["username"]
+    user_sav_dir = os.path.join(user_dir, data_name, user_name)
     # Check directory "user_name" exists
     # If not, create directory "user_name"
-    if not os.path.exists(user_name):
-        os.makedirs(user_name)
+    if not os.path.exists(user_sav_dir):
+        os.makedirs(user_sav_dir)
     # Write model_code to file "user_name/model.py"
-    if os.path.exists(user_name + "/model.py"):
-        os.remove(user_name + "/model.py")
-    with open(user_name + "/model.py", "w") as f:
+    if os.path.exists(user_sav_dir + "/model.py"):
+        os.remove(user_sav_dir + "/model.py")
+    with open(user_sav_dir + "/model.py", "w") as f:
         f.write(model_code)
     # Write precode to file "user_name/precode.py"
     if precode != "":
-        if os.path.exists(user_name + "/precode.py"):
-            os.remove(user_name + "/precode.py")
-        with open(user_name + "/precode.py", "w") as f:
+        if os.path.exists(user_sav_dir + "/precode.py"):
+            os.remove(user_sav_dir + "/precode.py")
+        with open(user_sav_dir + "/precode.py", "w") as f:
             f.write(precode)
-    else:
-        if os.path.exists(user_name + "/precode.py"):
-            os.remove(user_name + "/precode.py")
-
     # Run train_main.py
     acc = 0
     if precode == "":
@@ -135,15 +132,46 @@ def submit_code():
             data_name=data_name,
         )
 
-    print(acc)
+    user_id = session["user_id"]
+    cur = mysql.connection.cursor()
+    cur.execute("START TRANSACTION")
+    try:
+        cur.execute(
+            "INSERT INTO performance (user_id, data_name, accuracy) VALUES (%s, %s, %s)",
+            (user_id, data_name, acc),
+        )
+        cur.execute("COMMIT")
+    except Exception as e:
+        cur.execute("ROLLBACK")
+        error_message = "Error in submitting code"
+        return render_template("submit_code.html", error_message=error_message)
+
+    finally:
+        cur.close()
+
+    return redirect("/")
+
+
+@app.route("/delete_code", methods=["POST"])
+def delete_code():
+    user_name = session["deleteName"]
+    data_name = request.form["deleteDataset"]
+    user_sav_dir = os.path.join(user_dir, data_name, user_name)
+    # Check directory "user_name" exists
+    if os.path.exists(user_sav_dir + "/model.py"):
+        os.remove(user_sav_dir + "/model.py")
+    # Write precode to file "user_name/precode.py"
+    if os.path.exists(user_sav_dir + "/precode.py"):
+        os.remove(user_sav_dir + "/precode.py")
+
+    return redirect("/")
 
 
 if __name__ == "__main__":
-    if not os.path.exists("users"):
-        os.makedirs("users")
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir)
 
     app.secret_key = "super secret key"
     app.config["SESSION_TYPE"] = "filesystem"
     app, mysql = init_app(app, "auth.dat")
     app.run()
-

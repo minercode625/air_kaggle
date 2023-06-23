@@ -1,4 +1,18 @@
-*TodoList*
+*Development Note*
 
-- ( ) New dataset
-- ( ) Verification
+** Implementation List
+   - (x) Login
+   - (x) Save
+   - (x) Load
+   - ( ) Error Response
+   -- ( ) Training error response
+   - ( ) List Html
+
+
+** Error Check list
+   - ( ) Check login fail
+   - ( ) Check login success
+   - ( ) Check accuracy save
+   - ( ) Check accuracy load
+   - ( ) Code Delete
+

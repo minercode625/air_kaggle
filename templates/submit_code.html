@@ -53,6 +53,27 @@
 
     <input type="submit" value="Submit" />
   </form>
+  {% if error_message %}
+  <p>{{ error_message }}</p>
+  {% endif %}
+  <!-- add a new button to delete the code -->
+  <form id="deleteForm" action="/delete_code" method="post">
+    <input type="hidden" id="deleteName" name="name" value="{{ user_name }}" />
+    <input type="hidden" id="deleteDataset" name="dataset" value="{{ selected_dataset }}" />
+    <input type="submit" value="Delete Code" />
+  </form>
+  <script>
+    // Handle delete code form submission
+    document
+      .getElementById("deleteForm")
+      .addEventListener("submit", function (event) {
+        // Update the hidden input fields with the values from the upper form block
+        document.getElementById("deleteName").value =
+          document.getElementById("name").value;
+        document.getElementById("deleteDataset").value =
+          document.getElementById("dataset").value;
+      });
+  </script>
 </body>
 
 </html>
