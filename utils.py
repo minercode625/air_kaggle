@@ -8,6 +8,20 @@ def load_data(path):
     return data
 
 
+class Performance:
+    def __init__(self, dataname, username, acc):
+        self.dataname = dataname
+        self.username = username
+        self.acc = acc
+
+    def __str__(self):
+        return f"{self.dataname} {self.username} {self.acc}"
+
+    # For compare
+    def __lt__(self, other):
+        return self.acc < other.acc
+
+
 def main():
     pattern = "*.csv"
     tr_name = glob.glob(os.path.join("data/train", pattern))

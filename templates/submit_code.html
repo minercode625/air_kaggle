@@ -39,6 +39,13 @@
     <label for="name">Name:</label>
     <input type="text" id="name" name="name" value="{{ user_name }}" required /><br />
 
+    <!-- if 'deleted is True from python server, print 'Code is deleted' bigger font size-->
+    {% if deleted %}
+    <p style="font-size: 20px; color: red">Code is deleted</p>
+    {% endif %} {% if error_message %}
+    <p style="font-size: 20px; color: red">{{ error_message }}</p>
+    {% endif %}
+
     <label for="dataset">Dataset:</label><br />
     <select id="dataset" name="dataset" required>
       {% for dataset in datasets %}
@@ -53,9 +60,6 @@
 
     <input type="submit" value="Submit" />
   </form>
-  {% if error_message %}
-  <p>{{ error_message }}</p>
-  {% endif %}
   <!-- add a new button to delete the code -->
   <form id="deleteForm" action="/delete_code" method="post">
     <input type="hidden" id="deleteName" name="name" value="{{ user_name }}" />

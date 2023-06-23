@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, redirect
 from flask_mysqldb import MySQL
 import os
 from train_main import train_main
+from utils import Performance
 
 app = Flask(__name__)
 mysql = None
@@ -73,6 +74,14 @@ def signup():
     return redirect("/")
 
 
+def get_data_list():
+    data_list = os.listdir("data")
+    # check if data_list has a entry name ".DS_Store"
+    if ".DS_Store" in data_list:
+        data_list.remove(".DS_Store")
+    return data_list
+
+
 @app.route("/signin", methods=["POST"])
 def signin():
     username = request.form["username"]
@@ -86,26 +95,35 @@ def signin():
         session["user_id"] = user[0]
         session["username"] = user[1]
         # get folder name in data forlder
-        dir_list = os.listdir("data")
-        # check if dir_list has a entry name ".DS_Store"
-        if ".DS_Store" in dir_list:
-            dir_list.remove(".DS_Store")
+        data_list = get_data_list()
 
         return render_template(
-            "submit_code.html", user_name=session["username"], datasets=dir_list
+            "submit_code.html",
+            user_name=session["username"],
+            datasets=data_list,
+            deleted=False,
         )
     else:
         error_message = "Invalid username or password"
         return render_template("login.html", error_message=error_message)
 
 
-@app.route("/submit_code", methods=["POST"])
+@app.route("/submit_code", methods=["POST", "GET"])
 def submit_code():
+    user_name = session.get("username")
+    data_list = get_data_list()
+
+    if request.method == "GET":
+        return render_template(
+            "submit_code.html", user_name=user_name, datasets=data_list, deleted=True
+        )
+
     model_code = request.form["modelcode"]
     precode = request.form["precode"]
     data_name = request.form["dataset"]
-    user_name = session["username"]
     user_sav_dir = os.path.join(user_dir, data_name, user_name)
+
+    data_list = get_data_list()
     # Check directory "user_name" exists
     # If not, create directory "user_name"
     if not os.path.exists(user_sav_dir):
@@ -124,38 +142,86 @@ def submit_code():
     # Run train_main.py
     acc = 0
     if precode == "":
-        acc = train_main(model_path=user_name + "/model.py", data_name=data_name)
+        ret = train_main(model_path=user_sav_dir + "/model.py", data_name=data_name)
     else:
-        acc = train_main(
-            model_path=user_name + "/model.py",
-            preproc_path=user_name + "/precode.py",
+        ret = train_main(
+            model_path=user_sav_dir + "/model.py",
+            preproc_path=user_sav_dir + "/precode.py",
             data_name=data_name,
         )
 
-    user_id = session["user_id"]
-    cur = mysql.connection.cursor()
-    cur.execute("START TRANSACTION")
-    try:
-        cur.execute(
-            "INSERT INTO performance (user_id, data_name, accuracy) VALUES (%s, %s, %s)",
-            (user_id, data_name, acc),
+    if isinstance(ret, Exception):
+        # responce error message
+        return render_template(
+            "submit_code.html",
+            user_name=user_name,
+            datasets=data_list,
+            error_message=str(ret),
         )
-        cur.execute("COMMIT")
-    except Exception as e:
-        cur.execute("ROLLBACK")
-        error_message = "Error in submitting code"
-        return render_template("submit_code.html", error_message=error_message)
+    else:
+        user_id = session["user_id"]
+        cur = mysql.connection.cursor()
+        cur.execute("START TRANSACTION")
+        try:
+            cur.execute(
+                "INSERT INTO performance (user_id, data_name, accuracy) VALUES (%s, %s, %s)",
+                (user_id, data_name, acc),
+            )
+            cur.execute("COMMIT")
+        except Exception as e:
+            cur.execute("ROLLBACK")
+            error_message = "Error in submitting code"
+            cur.close()
+            return render_template(
+                "submit_code.html",
+                user_name=user_name,
+                datasets=data_list,
+                error_message=error_message,
+            )
 
-    finally:
-        cur.close()
+        cur.execute("START TRANSACTION")
 
-    return redirect("/")
+        perf_arr = []
+        try:
+            # get results from performance table
+            for data_name in data_list:
+                perf_data = []
+                query = """
+                   SELECT u.username, MAX(p.accuracy) as max_accuracy
+                   FROM performance p
+                   JOIN users u ON p.user_id = u.id
+                   WHERE p.data_name = %s
+                   GROUP BY p.user_id
+                   ORDER BY max_accuracy DESC;
+                   """
+                cur.execute(
+                    query,
+                    (data_name),
+                )
+                results = cur.fetchall()
+                for result in results:
+                    entry = Performance(result[0], result[1], result[3])
+                    perf_data.append(entry)
+                perf_arr.append(perf_data)
+            cur.execute("COMMIT")
+        except Exception as e:
+            cur.execute("ROLLBACK")
+            error_message = "Error in submitting code"
+            cur.close()
+            return render_template(
+                "submit_code.html",
+                user_name=user_name,
+                datasets=data_list,
+                error_message=error_message,
+            )
+
+        return redirect("/")
 
 
 @app.route("/delete_code", methods=["POST"])
 def delete_code():
-    user_name = session["deleteName"]
-    data_name = request.form["deleteDataset"]
+    user_name = request.form["name"]
+    data_name = request.form["dataset"]
     user_sav_dir = os.path.join(user_dir, data_name, user_name)
     # Check directory "user_name" exists
     if os.path.exists(user_sav_dir + "/model.py"):
@@ -164,7 +230,7 @@ def delete_code():
     if os.path.exists(user_sav_dir + "/precode.py"):
         os.remove(user_sav_dir + "/precode.py")
 
-    return redirect("/")
+    return redirect("/submit_code")
 
 
 if __name__ == "__main__":
