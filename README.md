@@ -27,6 +27,14 @@ CREATE TABLE users (
     username VARCHAR(50),
     password VARCHAR(50)
 );
+CREATE TABLE performance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    data_name VARCHAR(50),
+    accuracy FLOAT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE
+);
 ```
 
 ### Dataset

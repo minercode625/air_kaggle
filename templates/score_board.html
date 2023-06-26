@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Performance</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Submitted Code Performance</h1>
+  <table>
+    <tr>
+      <th>Dataset</th>
+      <th>Accuracy</th>
+    </tr>
+    <tr>
+      <td>{{ rec_perf[0] }}</td>
+      <td>{{ rec_perf[1] }}</td>
+    </tr>
+  </table>
+
+  <h1>Performance Ranking</h1>
+
+  {% for dataset, performances in perf_arr.items() %}
+  <h2>{{ dataset }}</h2>
+  <table>
+    <tr>
+      <th>Ranking</th>
+      <th>Username</th>
+      <th>Accuracy</th>
+    </tr>
+    {% for performance in performances %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ performance[0] }}</td>
+      <td>{{ performance[1] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endfor %}
+
+  <button onclick="location.href='/submit_code';" style="margin-top: 20px">
+    Submit More Code
+  </button>
+</body>
+
+</html>

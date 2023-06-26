@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect
+from flask import Flask, render_template, request, session, redirect, url_for
 from flask_mysqldb import MySQL
 import os
 from train_main import train_main
@@ -113,9 +113,14 @@ def submit_code():
     user_name = session.get("username")
     data_list = get_data_list()
 
+    deleted = "deleted" in request.args
     if request.method == "GET":
         return render_template(
-            "submit_code.html", user_name=user_name, datasets=data_list, deleted=True
+            "submit_code.html", user_name=user_name, datasets=data_list, deleted=deleted
+        )
+    if request.method == "GET":
+        return render_template(
+            "submit_code.html", user_name=user_name, datasets=data_list, deleted=deleted
         )
 
     model_code = request.form["modelcode"]
@@ -140,7 +145,6 @@ def submit_code():
         with open(user_sav_dir + "/precode.py", "w") as f:
             f.write(precode)
     # Run train_main.py
-    acc = 0
     if precode == "":
         ret = train_main(model_path=user_sav_dir + "/model.py", data_name=data_name)
     else:
@@ -165,9 +169,10 @@ def submit_code():
         try:
             cur.execute(
                 "INSERT INTO performance (user_id, data_name, accuracy) VALUES (%s, %s, %s)",
-                (user_id, data_name, acc),
+                (user_id, data_name, ret),
             )
             cur.execute("COMMIT")
+            recent_performance = [data_name, ret]
         except Exception as e:
             cur.execute("ROLLBACK")
             error_message = "Error in submitting code"
@@ -181,13 +186,13 @@ def submit_code():
 
         cur.execute("START TRANSACTION")
 
-        perf_arr = []
+        perf_arr = {}
         try:
             # get results from performance table
             for data_name in data_list:
                 perf_data = []
                 query = """
-                   SELECT u.username, MAX(p.accuracy) as max_accuracy
+                   SELECT u.name, MAX(p.accuracy) as max_accuracy
                    FROM performance p
                    JOIN users u ON p.user_id = u.id
                    WHERE p.data_name = %s
@@ -196,26 +201,33 @@ def submit_code():
                    """
                 cur.execute(
                     query,
-                    (data_name),
+                    (data_name,),
                 )
                 results = cur.fetchall()
                 for result in results:
-                    entry = Performance(result[0], result[1], result[3])
+                    entry = [result[0], result[1]]
                     perf_data.append(entry)
-                perf_arr.append(perf_data)
+                perf_arr[data_name] = perf_data
             cur.execute("COMMIT")
+            flag = True
         except Exception as e:
             cur.execute("ROLLBACK")
             error_message = "Error in submitting code"
+            flag = False
+        finally:
             cur.close()
+
+        if flag:
+            return render_template(
+                "score_board.html", perf_arr=perf_arr, rec_perf=recent_performance
+            )
+        else:
             return render_template(
                 "submit_code.html",
                 user_name=user_name,
                 datasets=data_list,
                 error_message=error_message,
             )
-
-        return redirect("/")
 
 
 @app.route("/delete_code", methods=["POST"])
@@ -230,7 +242,7 @@ def delete_code():
     if os.path.exists(user_sav_dir + "/precode.py"):
         os.remove(user_sav_dir + "/precode.py")
 
-    return redirect("/submit_code")
+    return redirect(url_for("submit_code", deleted="True"))
 
 
 if __name__ == "__main__":

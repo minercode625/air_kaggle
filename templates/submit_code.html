@@ -37,7 +37,7 @@
   <h1>Code Submission</h1>
   <form action="/submit_code" method="post" enctype="multipart/form-data">
     <label for="name">Name:</label>
-    <input type="text" id="name" name="name" value="{{ user_name }}" required /><br />
+    <h2 id="name">{{ user_name }}</h2>
 
     <!-- if 'deleted is True from python server, print 'Code is deleted' bigger font size-->
     {% if deleted %}
@@ -72,8 +72,6 @@
       .getElementById("deleteForm")
       .addEventListener("submit", function (event) {
         // Update the hidden input fields with the values from the upper form block
-        document.getElementById("deleteName").value =
-          document.getElementById("name").value;
         document.getElementById("deleteDataset").value =
           document.getElementById("dataset").value;
       });
